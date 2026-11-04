@@ -18,9 +18,9 @@ The following items were verified from Jenkins Build #8 console output on 4 Nove
 
 These are deployment/integration checks, not a performance benchmark.
 
-## Evidence screenshots to attach
+## Evidence screenshots
 
-Add sanitized screenshots here after capturing them from the actual AWS/Jenkins consoles:
+Sanitized screenshots are organized in [`docs/evidence/`](evidence/README.md). The folder README lists the expected filenames. Confirm each image is present in the repository before treating the evidence package as complete.
 
 1. `jenkins-build-8-success.png` — Jenkins console showing final successful stages and `Finished: SUCCESS`.
 2. `ecr-image-tag-8.png` — ECR repository showing image tag `:8` and digest.
@@ -41,7 +41,7 @@ Before committing screenshots, redact account-sensitive details if desired and n
 | S3 event-driven integration | PASS | Output object appeared in destination bucket |
 | Output format | PASS | `image/jpeg` |
 | Output size | PASS | 285 bytes for the 1x1 CI fixture only |
-| CloudWatch log verification | Pending | Capture actual invocation log |
+| CloudWatch log verification | PASS | Build #8 invocation log; processed=1, skipped=0; processing 147.64 ms; execution 149.83 ms; max memory 95 MB; cold-start init 3,133.76 ms |
 | Multi-format functional tests | Pending | Record separate JPEG, PNG, WEBP results |
 | Invalid/oversized input tests | Pending | Record expected skip/rejection behavior |
 | Performance benchmark | Pending | Measure with representative images and repeated runs |
