@@ -9,7 +9,7 @@ A serverless, event-driven image processing application with an automated Jenkin
 ```mermaid
 flowchart LR
     DEV[Developer] --> GH[GitHub Repository]
-    GH -->|Webhook / Pipeline SCM checkout| J[Jenkins Pipeline]
+    GH -->|Pipeline SCM checkout| J[Jenkins Pipeline]
     J -->|Build Docker image| D[Docker]
     D -->|Push versioned image| ECR[Amazon ECR]
     J -->|Update function code| L[AWS Lambda]
@@ -32,9 +32,11 @@ The source and destination buckets are separate to prevent recursive S3-triggere
 ## Image Processing
 
 - Accepts JPEG, PNG, and WEBP images.
-- Corrects image orientation where applicable.
+- Corrects image orientation using EXIF metadata where available.
 - Resizes images while preserving aspect ratio.
-- Converts processed output to JPEG.
+- Handles transparency by compositing onto a white background.
+- Converts processed output to optimized JPEG.
+- Enforces configurable input-size and image-pixel limits.
 - Writes processed images to the destination bucket under `processed/`.
 
 ## CI/CD Pipeline
@@ -44,11 +46,11 @@ The Jenkins pipeline is defined in `Jenkinsfile` and performs:
 1. **Checkout** – retrieves the configured GitHub branch.
 2. **Build** – builds the Lambda container for `linux/amd64`.
 3. **Registry authentication** – authenticates to Amazon ECR using Jenkins-managed credentials.
-4. **Push** – publishes a build-number-tagged image to ECR.
+4. **Push** – publishes an immutable build-number-tagged image to ECR.
 5. **Deploy** – updates the Lambda function to use the new image and waits for the update to complete.
 6. **S3 integration test** – uploads a generated PNG test image to the source bucket and polls the destination bucket for the processed JPEG. The build fails if the output is not found within the configured timeout.
 
-Jenkins credential ID used by the pipeline: `aws-ecr-credentials`. AWS credentials are stored in Jenkins Credentials and are not committed to this repository.
+Jenkins credential ID: `aws-ecr-credentials`. AWS credentials are stored in Jenkins Credentials and are not committed to this repository.
 
 ## AWS Services and Tools
 
@@ -61,7 +63,7 @@ Jenkins credential ID used by the pipeline: `aws-ecr-credentials`. AWS credentia
 | AWS IAM | Access control for Lambda and deployment |
 | Jenkins | CI/CD orchestration and integration testing |
 | Docker | Container image build |
-| Terraform | Infrastructure as Code foundation |
+| Terraform | Infrastructure as Code configuration |
 | GitHub | Source control and pipeline source |
 
 ## Repository Structure
@@ -75,11 +77,15 @@ Jenkins credential ID used by the pipeline: `aws-ecr-credentials`. AWS credentia
 │   └── Dockerfile
 ├── infrastructure/
 │   └── terraform/
+│       ├── main.tf
+│       ├── variables.tf
+│       ├── outputs.tf
+│       └── .terraform.lock.hcl
 ├── architecture/
 │   └── architecture.md
 ├── docs/
-│   ├── deployment.md
-│   └── interview.md
+│   └── deployment.md
+├── test-data/
 ├── .gitignore
 └── README.md
 ```
@@ -92,20 +98,22 @@ Jenkins credential ID used by the pipeline: `aws-ecr-credentials`. AWS credentia
 - Source object prefix: `uploads/`
 - Destination object prefix: `processed/`
 
-Bucket names and AWS account-specific values are configured in the Jenkinsfile / AWS environment. Do not commit access keys, secret keys, or Terraform state.
+Bucket names and AWS account-specific values are configured in the deployment environment. Do not commit access keys, secret keys, Terraform state, or real secret variable files.
 
 ## Verification
 
-A successful Jenkins run should show:
+Jenkins Build #8 completed successfully with:
 
-- Docker image built and pushed to ECR with the Jenkins build number.
-- Lambda function update completed successfully.
-- `S3 integration test PASSED.`
-- Jenkins build result: `SUCCESS`.
+- Docker image built and pushed to ECR using build tag `:8`.
+- Lambda function update completed with status `Successful`.
+- S3 integration test passed.
+- Test output created at `processed/ci-test-8-processed.jpg`.
+- Output Content-Type verified as `image/jpeg`.
 
 ## Security Notes
 
 - Keep S3 buckets private and block public access.
 - Use least-privilege IAM permissions.
 - Store deployment credentials in Jenkins Credentials, not source control.
-- Keep Terraform state and secret variable files out of Git.
+- Keep Terraform state, plan files, and secret variable files out of Git.
+- Review Terraform destructive settings before running `apply` or `destroy`.
