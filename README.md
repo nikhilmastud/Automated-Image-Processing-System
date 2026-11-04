@@ -29,6 +29,48 @@ flowchart LR
 
 The source and destination buckets are separate to prevent recursive S3-triggered Lambda invocations.
 
+## Complete Architecture Flow
+
+The project has two connected workflows: CI/CD deployment and runtime image processing.
+
+### End-to-end flow
+
+```mermaid
+flowchart TD
+    DEV[Developer] -->|Push code| GH[GitHub Repository]
+    GH -->|Checkout Jenkinsfile and source| J[Jenkins CI/CD Pipeline]
+    J -->|Build container image| D[Docker]
+    D -->|Push versioned image| ECR[Amazon ECR]
+    J -->|Deploy image reference| L[AWS Lambda]
+    ECR -->|Lambda pulls container image| L
+
+    U[User / Application] -->|Upload image| S1[Amazon S3 Source Bucket]
+    S1 -->|ObjectCreated event| L
+    L -->|Python + Pillow processing| PROC[Validate, resize, orient and convert to JPEG]
+    PROC -->|Save processed image| S2[Amazon S3 Destination Bucket]
+
+    IAM[IAM Roles and Policies] -.->|Permissions| J
+    IAM -.->|Execution permissions| L
+    L -->|Execution logs and metrics| CW[Amazon CloudWatch]
+    TF[Terraform - Infrastructure as Code] -.->|Defines AWS infrastructure| AWS[ S3, ECR, Lambda, IAM and CloudWatch ]
+```
+
+### Flow summary
+
+1. **Developer → GitHub:** Developer pushes application code and the Jenkins pipeline definition.
+2. **GitHub → Jenkins:** Jenkins checks out the repository and starts the CI/CD pipeline.
+3. **Jenkins → Docker → Amazon ECR:** Jenkins builds the Lambda container image and pushes a versioned image to ECR.
+4. **Jenkins → AWS Lambda:** Jenkins updates the Lambda function to use the new ECR image.
+5. **S3 Source Bucket:** A user or application uploads an image to the `uploads/` prefix.
+6. **S3 Event → Lambda:** The S3 ObjectCreated event invokes the Lambda function.
+7. **Python + Pillow:** Lambda validates the image, corrects orientation, resizes it, handles transparency, and converts it to JPEG.
+8. **S3 Destination Bucket:** Lambda stores the processed JPEG under the `processed/` prefix.
+9. **IAM:** IAM roles and policies control the permissions required by the deployment pipeline and Lambda execution.
+10. **CloudWatch:** Lambda execution logs and runtime details are available for monitoring and troubleshooting.
+11. **Terraform:** Terraform configuration defines the AWS infrastructure as code.
+
+**Note:** Terraform configuration is included in this repository. The verified Build #8 CI/CD run used Jenkins, Docker, ECR, and Lambda for deployment; do not interpret the diagram as proof that Terraform provisioned the currently running resources.
+
 ## Image Processing
 
 - Accepts JPEG, PNG, and WEBP images.
