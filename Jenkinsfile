@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -35,8 +36,12 @@ pipeline {
                         ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
                         IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
 
-                        echo "Building Docker image..."
-                        docker build -t "$IMAGE_URI" ./lambda
+                        echo "Building Lambda-compatible Docker image..."
+                        docker build \
+                            --platform linux/amd64 \
+                            --provenance=false \
+                            --sbom=false \
+                            -t "$IMAGE_URI" ./lambda
 
                         echo "Logging in to ECR..."
                         aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
