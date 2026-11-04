@@ -16,7 +16,7 @@ provider "aws" {
 resource "aws_ecr_repository" "lambda" {
   name                 = "${var.project_name}-processor"
   image_tag_mutability = "IMMUTABLE"
-  force_delete         = true
+  force_delete         = false
 
   image_scanning_configuration {
     scan_on_push = true
@@ -25,7 +25,7 @@ resource "aws_ecr_repository" "lambda" {
 
 resource "aws_s3_bucket" "source" {
   bucket_prefix = "${var.project_name}-source-"
-  force_destroy = true
+  force_destroy = false
 }
 
 resource "aws_s3_bucket" "destination" {
