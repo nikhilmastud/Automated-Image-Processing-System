@@ -84,7 +84,8 @@ Jenkins credential ID: `aws-ecr-credentials`. AWS credentials are stored in Jenk
 ├── architecture/
 │   └── architecture.md
 ├── docs/
-│   └── deployment.md
+│   ├── deployment.md
+│   └── interview.md
 ├── test-data/
 ├── .gitignore
 └── README.md
