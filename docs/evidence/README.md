@@ -4,12 +4,12 @@ This folder contains screenshots validating the AWS deployment and CI/CD pipelin
 
 ## Evidence screenshots
 
-- `jenkins-build-8-success.png` — Jenkins Build #8 console showing `S3 integration test PASSED` and `Finished: SUCCESS`.
-- `ecr-image-tag-8.png` — Amazon ECR image tag `:8` and digest.
-- `lambda-deployed-image.png` — Lambda function deployed from the ECR image.
-- `s3-source-test-object.png` — source object `uploads/ci-test-8.png`.
-- `s3-processed-test-object.png` — destination object `processed/ci-test-8-processed.jpg`.
-- `cloudwatch-build-8-log.png` — CloudWatch execution log and REPORT metrics.
+- `jenkins-build-8-success.png` — Jenkins Build #8.
+- `ecr-image-tag-8.png` — Amazon ECR private registry repository and images.
+- `lambda-deployed-image.png` — Lambda function using the ECR image.
+- `s3-source-test-object.png` — S3 source bucket upload.
+- `s3-processed-test-object.png` — S3 processed output folder.
+- `cloudwatch-build-8-log.png` — CloudWatch log events for image processing.
 
 ## Verified Build #8 results
 
@@ -27,4 +27,4 @@ This folder contains screenshots validating the AWS deployment and CI/CD pipelin
 
 **Measurement note:** These values come from a tiny 1x1 pixel CI test image. They are execution evidence, not a representative performance benchmark.
 
-Before uploading screenshots, ensure they contain no access keys, secret keys, session tokens, credentials, or other sensitive information.
+A screenshot that contained sensitive credential information was removed from this folder. Never commit access keys, secret keys, session tokens, passwords, or other credentials.
