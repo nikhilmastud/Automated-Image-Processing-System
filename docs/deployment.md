@@ -1,33 +1,77 @@
-# Deployment Plan
+# Deployment and CI/CD
 
-Deployment will be performed after the application and repository work is complete.
+This document describes the deployed AWS image-processing workflow and the Jenkins pipeline used to publish and deploy Lambda container images.
 
-## Planned Resources
+## AWS Resources
 
-- Source S3 bucket
-- Destination S3 bucket
-- Lambda function
-- IAM execution role
-- S3 event notification
-- Lambda invoke permission
-- CloudWatch log group
-- ECR repository for the Lambda container image
+- Source S3 bucket with incoming objects under `uploads/`
+- Destination S3 bucket with processed objects under `processed/`
+- Lambda function: `automated-image-processing-processor`
+- ECR repository: `automated-image-processing-processor`
+- CloudWatch Logs for Lambda execution
+- IAM execution role for Lambda and a separate IAM identity for Jenkins deployment
 
-## Deployment Order
+AWS Region: `ap-south-1`.
 
-1. Build and test the Lambda container.
-2. Push the image to Amazon ECR.
-3. Deploy infrastructure with Terraform.
-4. Upload a test image to the source bucket.
-5. Verify the processed image in the destination bucket.
-6. Check Lambda execution logs in CloudWatch.
-7. Test invalid files and failure scenarios.
-8. Add CI/CD after the core workflow is verified.
+## Runtime Deployment Flow
 
-## Security
+1. An image is uploaded to the source bucket under `uploads/`.
+2. S3 emits an object-created event.
+3. The Lambda function receives the event and reads the source image.
+4. Python/Pillow corrects orientation where applicable, resizes the image, and converts it to JPEG.
+5. Lambda writes the processed image to the destination bucket under `processed/`.
+6. CloudWatch Logs capture Lambda execution details.
 
-- Keep buckets private.
-- Enable S3 public-access blocking.
-- Enable server-side encryption.
-- Use least-privilege IAM.
-- Never commit AWS credentials or Terraform state.
+The source and destination buckets are separate to avoid recursive invocation when Lambda writes its output.
+
+## Jenkins CI/CD
+
+The repository's `Jenkinsfile` defines the deployment pipeline:
+
+1. Checkout source from GitHub.
+2. Build the Lambda Docker image for `linux/amd64`, with provenance and SBOM attestations disabled for Lambda image compatibility.
+3. Authenticate to Amazon ECR using the Jenkins credential ID `aws-ecr-credentials`.
+4. Push an immutable build-number-tagged image.
+5. Update the Lambda function to the new ECR image and wait for the update to complete.
+6. Run an S3 integration test by uploading a generated PNG to the source bucket and polling for its processed JPEG in the destination bucket.
+
+The pipeline reports success only when the deployment stage and S3 integration test both complete successfully.
+
+## Jenkins Credential Setup
+
+Create a Jenkins credential with:
+
+- Kind: Username with password
+- ID: `aws-ecr-credentials`
+- Username: AWS access key ID
+- Password: AWS secret access key
+
+Do not put credentials in the Jenkinsfile or commit them to GitHub.
+
+## IAM Permissions
+
+The Jenkins IAM identity needs permissions for the pipeline operations, scoped to the required resources where possible:
+
+- ECR authentication and image push permissions.
+- Lambda update and read permissions for the target function.
+- `s3:PutObject` on the source bucket's `uploads/*` prefix for the integration test.
+- `s3:GetObject` on the destination bucket's `processed/*` prefix to verify the test output.
+
+The Lambda execution role separately needs access to read source objects, write destination objects, and publish logs.
+
+## Verification Checklist
+
+- [ ] Jenkins checks out the intended branch.
+- [ ] Docker image builds successfully.
+- [ ] Image is pushed to ECR with the Jenkins build number.
+- [ ] Lambda update completes and reports a successful update status.
+- [ ] Jenkins prints `S3 integration test PASSED.`
+- [ ] The corresponding processed JPEG exists in the destination bucket.
+- [ ] Lambda logs show successful processing in CloudWatch.
+
+## Operational Notes
+
+- Keep both buckets private and block public access.
+- Use least-privilege IAM policies.
+- Never commit AWS access keys, secret keys, Terraform state, or real secret variable files.
+- Review CloudWatch Logs when the integration test times out or Lambda processing fails.
