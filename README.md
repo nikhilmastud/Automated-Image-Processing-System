@@ -57,18 +57,17 @@ flowchart TD
 
 ### Flow summary
 
-1. **Developer → GitHub:** Developer pushes application code and the Jenkins pipeline definition.
-2. **GitHub → Jenkins:** Jenkins checks out the repository and starts the CI/CD pipeline.
-3. **Jenkins → Docker → Amazon ECR:** Jenkins builds the Lambda container image and pushes a versioned image to ECR.
-4. **Jenkins → AWS Lambda:** Jenkins updates the Lambda function to use the new ECR image.
-5. **S3 Source Bucket:** A user or application uploads an image to the `uploads/` prefix.
-6. **S3 Event → Lambda:** The S3 ObjectCreated event invokes the Lambda function.
-7. **Python + Pillow:** Lambda validates the image, corrects orientation, resizes it, handles transparency, and converts it to JPEG.
-8. **S3 Destination Bucket:** Lambda stores the processed JPEG under the `processed/` prefix.
-9. **IAM:** IAM roles and policies control the permissions required by the deployment pipeline and Lambda execution.
-10. **CloudWatch:** Lambda execution logs and runtime details are available for monitoring and troubleshooting.
-11. **Terraform:** Terraform configuration defines the AWS infrastructure as code.
-
+1. 👨‍💻 **Developer → GitHub** — Pushes application code and the `Jenkinsfile`.
+2. 🔄 **GitHub → Jenkins** — Jenkins checks out the repository and starts the pipeline.
+3. 🐳 **Jenkins → Docker → Amazon ECR** — Builds and pushes a version-tagged Lambda image.
+4. 🚀 **Jenkins → AWS Lambda** — Deploys the latest container image to the Lambda function.
+5. 📤 **S3 Source Bucket** — Receives uploaded images in the `uploads/` prefix.
+6. ⚡ **S3 Event → Lambda** — An `ObjectCreated` event triggers image processing.
+7. 🖼️ **Python + Pillow** — Validates, rotates, resizes, handles transparency, and converts images to JPEG.
+8. 📥 **S3 Destination Bucket** — Stores processed JPEG files in the `processed/` prefix.
+9. 🔐 **AWS IAM** — Controls deployment and Lambda execution permissions.
+10. 📊 **Amazon CloudWatch** — Collects Lambda logs for monitoring and troubleshooting.
+11. 🏗️ **Terraform** — Defines AWS infrastructure as code.
 **Note:** Terraform configuration is included in this repository. The verified Build #8 CI/CD run used Jenkins, Docker, ECR, and Lambda for deployment; do not interpret the diagram as proof that Terraform provisioned the currently running resources.
 
 ## Image Processing
