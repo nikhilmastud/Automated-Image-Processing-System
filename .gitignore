@@ -12,3 +12,4 @@ venv/
 !example.tfvars
 .DS_Store
 Thumbs.db
+test-output/
