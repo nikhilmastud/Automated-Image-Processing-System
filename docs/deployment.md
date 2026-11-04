@@ -61,13 +61,13 @@ The Lambda execution role separately needs access to read source objects, write 
 
 ## Verification Checklist
 
-- [ ] Jenkins checks out the intended branch.
-- [ ] Docker image builds successfully.
-- [ ] Image is pushed to ECR with the Jenkins build number.
-- [ ] Lambda update completes and reports a successful update status.
-- [ ] Jenkins prints `S3 integration test PASSED.`
-- [ ] The corresponding processed JPEG exists in the destination bucket.
-- [ ] Lambda logs show successful processing in CloudWatch.
+- [x] Jenkins checks out the intended branch.
+- [x] Docker image builds successfully.
+- [x] Image is pushed to ECR with the Jenkins build number.
+- [x] Lambda update completes and reports a successful update status.
+- [x] Jenkins prints `S3 integration test PASSED.`
+- [x] The corresponding processed JPEG exists in the destination bucket.
+- [x] Lambda logs show successful processing in CloudWatch.
 
 ## Operational Notes
 
@@ -75,3 +75,9 @@ The Lambda execution role separately needs access to read source objects, write 
 - Use least-privilege IAM policies.
 - Never commit AWS access keys, secret keys, Terraform state, or real secret variable files.
 - Review CloudWatch Logs when the integration test times out or Lambda processing fails.
+
+## Remaining Validation
+
+The verified Jenkins integration test currently exercises a generated PNG fixture only. Before describing the application as fully functionally tested, run and record separate JPEG and WEBP cases, transparent PNG behavior, invalid-file handling, and oversized-image handling. Representative performance and concurrency benchmarks are also pending. Do not mark these as passed without execution evidence.
+
+The Terraform configuration provisions resources from a project-name prefix, while the current Jenkins pipeline targets the deployed bucket names configured in its environment block. When recreating the infrastructure in another AWS account or environment, update the Jenkins bucket configuration from the Terraform outputs before running the pipeline.

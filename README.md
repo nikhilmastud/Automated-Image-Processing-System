@@ -119,6 +119,8 @@ Jenkins Build #8 completed successfully with:
 - Test output created at `processed/ci-test-8-processed.jpg`.
 - Output Content-Type verified as `image/jpeg`.
 
+**Validation status:** Deployment and the PNG S3-to-Lambda integration path are verified. JPEG/WEBP functional coverage, invalid/oversized input behavior, and representative performance/load testing remain pending; see [deployment test results](docs/deployment-evidence-and-testing.md).
+
 ## Security Notes
 
 - Keep S3 buckets private and block public access.
