@@ -85,7 +85,10 @@ Jenkins credential ID: `aws-ecr-credentials`. AWS credentials are stored in Jenk
 │   └── architecture.md
 ├── docs/
 │   ├── deployment.md
-│   └── interview.md
+│   ├── deployment-evidence-and-testing.md
+│   ├── interview.md
+│   └── evidence/
+│       └── README.md
 ├── test-data/
 ├── .gitignore
 └── README.md
@@ -100,6 +103,11 @@ Jenkins credential ID: `aws-ecr-credentials`. AWS credentials are stored in Jenk
 - Destination object prefix: `processed/`
 
 Bucket names and AWS account-specific values are configured in the deployment environment. Do not commit access keys, secret keys, Terraform state, or real secret variable files.
+
+## Deployment Evidence
+
+- Screenshot checklist and verified Build #8 measurements: [`docs/evidence/README.md`](docs/evidence/README.md).
+- Test status and benchmark methodology: [`docs/deployment-evidence-and-testing.md`](docs/deployment-evidence-and-testing.md).
 
 ## Verification
 
