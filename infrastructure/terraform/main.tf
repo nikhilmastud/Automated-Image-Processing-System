@@ -30,7 +30,7 @@ resource "aws_s3_bucket" "source" {
 
 resource "aws_s3_bucket" "destination" {
   bucket_prefix = "${var.project_name}-dest-"
-  force_destroy = true
+  force_destroy = false
 }
 
 resource "aws_s3_bucket_public_access_block" "source" {
