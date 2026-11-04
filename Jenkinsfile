@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -11,6 +10,8 @@ pipeline {
         AWS_REGION = 'ap-south-1'
         ECR_REPOSITORY = 'automated-image-processing-processor'
         LAMBDA_FUNCTION = 'automated-image-processing-processor'
+        SOURCE_BUCKET = 'automated-image-processing-source-065bff4abbbeef74507fc0cb5f'
+        DESTINATION_BUCKET = 'automated-image-processing-dest-21a6e17e6604686cfb5e733809'
     }
 
     stages {
@@ -67,6 +68,51 @@ pipeline {
                             --output table
 
                         echo "Deployment completed: $IMAGE_URI"
+                    '''
+                }
+            }
+        }
+
+        stage('S3 Integration Test') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'aws-ecr-credentials',
+                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh '''
+                        set -eu
+                        export AWS_DEFAULT_REGION="$AWS_REGION"
+
+                        TEST_NAME="ci-test-${BUILD_NUMBER}"
+                        SOURCE_KEY="uploads/${TEST_NAME}.png"
+                        DESTINATION_KEY="processed/${TEST_NAME}-processed.jpg"
+
+                        echo "Creating a small valid PNG test image..."
+                        printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=' | base64 -d > /tmp/"${TEST_NAME}".png
+
+                        echo "Uploading test image to source S3 bucket..."
+                        aws s3 cp /tmp/"${TEST_NAME}".png "s3://${SOURCE_BUCKET}/${SOURCE_KEY}" --content-type image/png
+
+                        echo "Waiting for Lambda to create the processed image..."
+                        for attempt in $(seq 1 30); do
+                            if aws s3api head-object \
+                                --bucket "$DESTINATION_BUCKET" \
+                                --key "$DESTINATION_KEY" >/dev/null 2>&1; then
+                                echo "S3 integration test PASSED."
+                                echo "Processed object: s3://${DESTINATION_BUCKET}/${DESTINATION_KEY}"
+                                aws s3api head-object \
+                                    --bucket "$DESTINATION_BUCKET" \
+                                    --key "$DESTINATION_KEY" \
+                                    --query '[ContentType,ContentLength]' \
+                                    --output table
+                                exit 0
+                            fi
+                            sleep 2
+                        done
+
+                        echo "S3 integration test FAILED: processed image was not found within 60 seconds."
+                        exit 1
                     '''
                 }
             }
