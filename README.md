@@ -1,60 +1,80 @@
 # Automated Image Processing System
 
-A serverless, event-driven image processing system that automatically resizes, compresses, and converts uploaded images using Amazon S3, AWS Lambda, Python/Pillow, IAM, and CloudWatch.
+A serverless, event-driven image processing application with an automated Jenkins CI/CD pipeline. Images uploaded to Amazon S3 are processed by an AWS Lambda container using Python and Pillow, then saved to a separate S3 destination bucket.
 
 ## Architecture
 
-~~~mermaid
+### CI/CD deployment flow
+
+```mermaid
 flowchart LR
-    U[User / Application] -->|Upload| S1[(Amazon S3 - Source Bucket)]
-    S1 -->|ObjectCreated| L[AWS Lambda - Image Processor]
-    L -->|Processed Image| S2[(Amazon S3 - Destination Bucket)]
-    L --> CW[Amazon CloudWatch - Logs]
-    IAM[AWS IAM - Least Privilege] -.-> L
-~~~
+    DEV[Developer] --> GH[GitHub Repository]
+    GH -->|Webhook / Pipeline SCM checkout| J[Jenkins Pipeline]
+    J -->|Build Docker image| D[Docker]
+    D -->|Push versioned image| ECR[Amazon ECR]
+    J -->|Update function code| L[AWS Lambda]
+    ECR -->|Lambda container image| L
+```
 
-## Image Processing Tasks
+### Runtime image-processing flow
 
-- Resize images while preserving aspect ratio
-- Compress images as optimized JPEG
-- Convert supported input images to JPEG
-- Store processed images separately from uploads
+```mermaid
+flowchart LR
+    U[User / Application] -->|Upload to uploads/| S1[(Amazon S3 Source Bucket)]
+    S1 -->|ObjectCreated event| L[AWS Lambda Image Processor]
+    L -->|Processed JPEG to processed/| S2[(Amazon S3 Destination Bucket)]
+    L --> CW[Amazon CloudWatch Logs]
+    IAM[IAM execution role] -.-> L
+```
 
-## How It Works
+The source and destination buckets are separate to prevent recursive S3-triggered Lambda invocations.
 
-1. User uploads an image to the source S3 bucket under the uploads prefix.
-2. S3 emits an ObjectCreated event.
-3. AWS Lambda receives the event and downloads the image.
-4. Python/Pillow resizes and compresses the image.
-5. Lambda stores the processed image in the destination S3 bucket under the processed prefix.
-6. CloudWatch captures execution logs.
+## Image Processing
 
-AWS documentation recommends filtering S3 events or separating input/output storage when Lambda writes objects back to S3, to avoid recursive invocation.
+- Accepts JPEG, PNG, and WEBP images.
+- Corrects image orientation where applicable.
+- Resizes images while preserving aspect ratio.
+- Converts processed output to JPEG.
+- Writes processed images to the destination bucket under `processed/`.
 
-## AWS Services
+## CI/CD Pipeline
 
-| Service | Purpose |
+The Jenkins pipeline is defined in `Jenkinsfile` and performs:
+
+1. **Checkout** – retrieves the configured GitHub branch.
+2. **Build** – builds the Lambda container for `linux/amd64`.
+3. **Registry authentication** – authenticates to Amazon ECR using Jenkins-managed credentials.
+4. **Push** – publishes a build-number-tagged image to ECR.
+5. **Deploy** – updates the Lambda function to use the new image and waits for the update to complete.
+6. **S3 integration test** – uploads a generated PNG test image to the source bucket and polls the destination bucket for the processed JPEG. The build fails if the output is not found within the configured timeout.
+
+Jenkins credential ID used by the pipeline: `aws-ecr-credentials`. AWS credentials are stored in Jenkins Credentials and are not committed to this repository.
+
+## AWS Services and Tools
+
+| Service / Tool | Purpose |
 |---|---|
-| Amazon S3 | Source and processed image storage |
-| AWS Lambda | Serverless image processing |
-| Amazon CloudWatch | Logs and monitoring |
-| AWS IAM | Least-privilege access |
-| Terraform | Infrastructure as Code |
-| Docker / ECR | Lambda container packaging |
+| Amazon S3 | Source image uploads and processed image storage |
+| AWS Lambda | Event-driven image processing |
+| Amazon ECR | Stores the Lambda container image |
+| Amazon CloudWatch | Lambda execution logs |
+| AWS IAM | Access control for Lambda and deployment |
+| Jenkins | CI/CD orchestration and integration testing |
+| Docker | Container image build |
+| Terraform | Infrastructure as Code foundation |
+| GitHub | Source control and pipeline source |
 
 ## Repository Structure
 
-~~~text
+```text
 .
+├── Jenkinsfile
 ├── lambda/
 │   ├── lambda_function.py
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── infrastructure/
 │   └── terraform/
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
 ├── architecture/
 │   └── architecture.md
 ├── docs/
@@ -62,10 +82,30 @@ AWS documentation recommends filtering S3 events or separating input/output stor
 │   └── interview.md
 ├── .gitignore
 └── README.md
-~~~
+```
 
-## Current Status
+## Deployment Configuration
 
-Application logic, architecture documentation, Terraform foundation, security configuration, and interview preparation are added.
+- AWS Region: `ap-south-1`
+- ECR repository: `automated-image-processing-processor`
+- Lambda function: `automated-image-processing-processor`
+- Source object prefix: `uploads/`
+- Destination object prefix: `processed/`
 
-AWS deployment is the next phase. Real processing metrics and screenshots will be added only after testing the deployed system.
+Bucket names and AWS account-specific values are configured in the Jenkinsfile / AWS environment. Do not commit access keys, secret keys, or Terraform state.
+
+## Verification
+
+A successful Jenkins run should show:
+
+- Docker image built and pushed to ECR with the Jenkins build number.
+- Lambda function update completed successfully.
+- `S3 integration test PASSED.`
+- Jenkins build result: `SUCCESS`.
+
+## Security Notes
+
+- Keep S3 buckets private and block public access.
+- Use least-privilege IAM permissions.
+- Store deployment credentials in Jenkins Credentials, not source control.
+- Keep Terraform state and secret variable files out of Git.
