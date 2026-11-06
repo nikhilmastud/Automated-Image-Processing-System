@@ -1,5 +1,7 @@
 # Automated Image Processing System
 
+![AWS Deployment Verified](https://img.shields.io/badge/AWS%20Deployment-Verified-success)
+
 A serverless, event-driven image processing application with an automated Jenkins CI/CD pipeline. Images uploaded to Amazon S3 are processed by an AWS Lambda container using Python and Pillow, then saved to a separate S3 destination bucket.
 
 ## Architecture
@@ -68,6 +70,7 @@ flowchart TD
 9. 🔐 **AWS IAM** — Controls deployment and Lambda execution permissions.
 10. 📊 **Amazon CloudWatch** — Collects Lambda logs for monitoring and troubleshooting.
 11. 🏗️ **Terraform** — Defines AWS infrastructure as code.
+
 **Note:** Terraform configuration is included in this repository. The verified Build #8 CI/CD run used Jenkins, Docker, ECR, and Lambda for deployment; do not interpret the diagram as proof that Terraform provisioned the currently running resources.
 
 ## Image Processing
