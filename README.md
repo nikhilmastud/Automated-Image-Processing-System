@@ -12,7 +12,34 @@
 
 [View Repository](https://github.com/nikhilmastud/Automated-Image-Processing-System)
 
-A serverless, event-driven image processing application with an automated Jenkins CI/CD pipeline. Images uploaded to Amazon S3 are processed by an AWS Lambda container using Python and Pillow, then saved to a separate S3 destination bucket.
+## Overview
+
+The Automated Image Processing System is an event-driven serverless workflow that processes images uploaded to Amazon S3. An S3 object-created event invokes an AWS Lambda container running Python and Pillow to validate, resize, correct orientation, and convert images to JPEG before saving the processed output to a separate S3 bucket.
+
+The project also uses a Jenkins CI/CD pipeline to build a Docker image, publish it to Amazon ECR, and update the Lambda function.
+
+## Live Site
+
+This project is a serverless backend and automated processing workflow; it does not have a public-facing website or browser-based live site.
+
+## Deployment Status
+
+The AWS deployment was verified through **Jenkins Build #8**.
+
+Verified deployment and integration results:
+- Jenkins pipeline completed with **SUCCESS**.
+- Docker image was built and pushed to Amazon ECR using build tag `:8`.
+- AWS Lambda image update completed with status **Successful**.
+- S3-to-Lambda integration test **PASSED**.
+- Processed output was created at `processed/ci-test-8-processed.jpg`.
+- Output Content-Type was verified as `image/jpeg`.
+
+The evidence screenshots and test measurements are documented in the repository:
+
+- [Deployment evidence and screenshot checklist](docs/evidence/README.md)
+- [Deployment evidence and testing details](docs/deployment-evidence-and-testing.md)
+
+*The recorded 147.64 ms application processing duration came from a tiny 1x1 pixel CI test image. It is not a representative performance benchmark.*
 
 ## Architecture
 
@@ -41,48 +68,6 @@ flowchart LR
 
 The source and destination buckets are separate to prevent recursive S3-triggered Lambda invocations.
 
-## Complete Architecture Flow
-
-The project has two connected workflows: CI/CD deployment and runtime image processing.
-
-### End-to-end flow
-
-```mermaid
-flowchart TD
-    DEV[Developer] -->|Push code| GH[GitHub Repository]
-    GH -->|Checkout Jenkinsfile and source| J[Jenkins CI/CD Pipeline]
-    J -->|Build container image| D[Docker]
-    D -->|Push versioned image| ECR[Amazon ECR]
-    J -->|Deploy image reference| L[AWS Lambda]
-    ECR -->|Lambda pulls container image| L
-
-    U[User / Application] -->|Upload image| S1[Amazon S3 Source Bucket]
-    S1 -->|ObjectCreated event| L
-    L -->|Python + Pillow processing| PROC[Validate, resize, orient and convert to JPEG]
-    PROC -->|Save processed image| S2[Amazon S3 Destination Bucket]
-
-    IAM[IAM Roles and Policies] -.->|Permissions| J
-    IAM -.->|Execution permissions| L
-    L -->|Execution logs and metrics| CW[Amazon CloudWatch]
-    TF[Terraform - Infrastructure as Code] -.->|Defines AWS infrastructure| AWS[ S3, ECR, Lambda, IAM and CloudWatch ]
-```
-
-### Flow summary
-
-1. 👨‍💻 **Developer → GitHub** — Pushes application code and the `Jenkinsfile`.
-2. 🔄 **GitHub → Jenkins** — Jenkins checks out the repository and starts the pipeline.
-3. 🐳 **Jenkins → Docker → Amazon ECR** — Builds and pushes a version-tagged Lambda image.
-4. 🚀 **Jenkins → AWS Lambda** — Deploys the latest container image to the Lambda function.
-5. 📤 **S3 Source Bucket** — Receives uploaded images in the `uploads/` prefix.
-6. ⚡ **S3 Event → Lambda** — An `ObjectCreated` event triggers image processing.
-7. 🖼️ **Python + Pillow** — Validates, rotates, resizes, handles transparency, and converts images to JPEG.
-8. 📥 **S3 Destination Bucket** — Stores processed JPEG files in the `processed/` prefix.
-9. 🔐 **AWS IAM** — Controls deployment and Lambda execution permissions.
-10. 📊 **Amazon CloudWatch** — Collects Lambda logs for monitoring and troubleshooting.
-11. 🏗️ **Terraform** — Defines AWS infrastructure as code.
-
-**Note:** Terraform configuration is included in this repository. The verified Build #8 CI/CD run used Jenkins, Docker, ECR, and Lambda for deployment; do not interpret the diagram as proof that Terraform provisioned the currently running resources.
-
 ## Image Processing
 
 - Accepts JPEG, PNG, and WEBP images.
@@ -97,12 +82,12 @@ flowchart TD
 
 The Jenkins pipeline is defined in `Jenkinsfile` and performs:
 
-1. **Checkout** – retrieves the configured GitHub branch.
-2. **Build** – builds the Lambda container for `linux/amd64`.
-3. **Registry authentication** – authenticates to Amazon ECR using Jenkins-managed credentials.
-4. **Push** – publishes an immutable build-number-tagged image to ECR.
-5. **Deploy** – updates the Lambda function to use the new image and waits for the update to complete.
-6. **S3 integration test** – uploads a generated PNG test image to the source bucket and polls the destination bucket for the processed JPEG. The build fails if the output is not found within the configured timeout.
+1. **Checkout** — retrieves the configured GitHub branch.
+2. **Build** — builds the Lambda container for `linux/amd64`.
+3. **Registry authentication** — authenticates to Amazon ECR using Jenkins-managed credentials.
+4. **Push** — publishes an immutable build-number-tagged image to ECR.
+5. **Deploy** — updates the Lambda function to use the new image and waits for the update to complete.
+6. **S3 integration test** — uploads a generated PNG test image to the source bucket and polls the destination bucket for the processed JPEG. The build fails if the output is not found within the configured timeout.
 
 Jenkins credential ID: `aws-ecr-credentials`. AWS credentials are stored in Jenkins Credentials and are not committed to this repository.
 
@@ -158,22 +143,9 @@ Jenkins credential ID: `aws-ecr-credentials`. AWS credentials are stored in Jenk
 
 Bucket names and AWS account-specific values are configured in the deployment environment. Do not commit access keys, secret keys, Terraform state, or real secret variable files.
 
-## Deployment Evidence
+## Verification Notes
 
-- Screenshot checklist and verified Build #8 measurements: [`docs/evidence/README.md`](docs/evidence/README.md).
-- Test status and benchmark methodology: [`docs/deployment-evidence-and-testing.md`](docs/deployment-evidence-and-testing.md).
-
-## Verification
-
-Jenkins Build #8 completed successfully with:
-
-- Docker image built and pushed to ECR using build tag `:8`.
-- Lambda function update completed with status `Successful`.
-- S3 integration test passed.
-- Test output created at `processed/ci-test-8-processed.jpg`.
-- Output Content-Type verified as `image/jpeg`.
-
-**Validation status:** Deployment and the PNG S3-to-Lambda integration path are verified. JPEG/WEBP functional coverage, invalid/oversized input behavior, and representative performance/load testing remain pending; see [deployment test results](docs/deployment-evidence-and-testing.md).
+Deployment and the PNG S3-to-Lambda integration path are verified. JPEG/WEBP functional coverage, invalid/oversized input behavior, and representative performance/load testing remain pending; see [deployment test results](docs/deployment-evidence-and-testing.md).
 
 ## Security Notes
 
