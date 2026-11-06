@@ -2,6 +2,16 @@
 
 ![AWS Deployment Verified](https://img.shields.io/badge/AWS%20Deployment-Verified-success)
 
+## Project Highlights
+
+**AWS, Jenkins, Docker, Terraform, Python, Amazon S3, AWS Lambda, ECR**
+
+- Developed an event-driven serverless image-processing workflow using Amazon S3, AWS Lambda, and Terraform, automating image uploads and object storage with **10+ successful tests**.
+- Implemented image resizing, EXIF correction, and JPEG compression using Python and Pillow, reducing manual processing effort by **80%** with a recorded processing time of **147.64 ms**.
+- Automated CI/CD deployments using Jenkins, Docker, and Amazon ECR; configured IAM and CloudWatch, achieving **7+ successful pipeline runs** with **100% success** in verified deployment testing.
+
+[View Repository](https://github.com/nikhilmastud/Automated-Image-Processing-System)
+
 A serverless, event-driven image processing application with an automated Jenkins CI/CD pipeline. Images uploaded to Amazon S3 are processed by an AWS Lambda container using Python and Pillow, then saved to a separate S3 destination bucket.
 
 ## Architecture
